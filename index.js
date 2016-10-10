@@ -1,3 +1,4 @@
+var prompt = require('prompt')
 /*
 Check that usernames are not blank
 On shuffle check that the deck has been created
@@ -18,13 +19,14 @@ put two cards at the bottom of the deck
 var Players = function(){
   return{
     username: '',
-    hand: []
+    hand: [],
+    wins: 0
   }
 }
 
 var suits = ['hearts','diamonds','spades','clubs']
 var glyph = {'hearts':'♥︎','diamonds':'♦︎','spades':'♠︎','clubs':'♣︎'}
-var ranks = ['ace','two','three']
+var ranks = ['ace','two','three','four','five','six','seven','eight','nine','ten','jack','queen','king']
 var scores = {}
   for (var i = 0; i < ranks.length; i++) {
     scores[ranks[i]] = i+1;
@@ -103,69 +105,106 @@ function dealHand(deck,players) {
   countHand();
 }
 
+function handSummary(){
+  for (var i = 0; i < players.length; i++) {
+    console.log(players[i].username, 'wins:',players[i].wins);
+  };
+  console.log('ties:', ties);
+}
+
 //used in playHand after there is a winner
 function handWon(pot,winner) {
   for (var i = 0; i < pot.length; i++) {
     players[winner.player].hand.push(pot[i][1]);
   }
+  players[winner.player].wins += 1
+  console.log(players[winner.player].username, 'won');
   countHand();
+  //console.log("pot", pot.length);
+  myPot = [];
 }
 
-
-function playHand() {
-  var pot = []
-  var msg = []
+function playHand(pot) {
+  var pot = pot
   var tie = 0;
   var winner = {player:'', score: 0}
   for (var i = 0; i < players.length; i++) {
-    console.log(players[i].username,"played",players[i].hand[0].short);
-    pot[pot.length] = [i,players[i].hand.shift()];
-    if(pot[i][1].score ==winner.score){
-      tie += 1;
+    if(players[i].hand.length === 0){
+      console.log(players[i].username,"has run out of cards");
+      return;
     }
-    if(pot[i][1].score>winner.score) {
+    console.log(players[i].username,"played",players[i].hand[0].short);
+    var currentCard = players[i].hand.shift()
+    pot.unshift([i,currentCard]);
+    if(pot[0][1].score === winner.score){
+      tie += 1;
+    }else if(pot[0][1].score>winner.score) {
       winner.player = i;
-      winner.score = pot[i][1].score;
+      winner.score = pot[0][1].score;
+      tie = 0;
     }
   }
+  console.log("pot size:", pot.length);
   if (tie === 0 ) {
     handWon(pot,winner);
   }else{
-    console.log("tie");
-    handWon(pot,winner)
+    console.log("It's a tie!");
+    ties += 1
+    for (var j = 0; j < 3; j++) {
+      for (var i = 0; i < players.length; i++) {
+        if(players[i].hand.length === 0){
+            console.log(players[i].username,"has run out of cards");
+            return;
+        }else{
+          console.log(".");
+          var currentCard = players[i].hand.shift()
+          pot.unshift([i,currentCard]);
+        }
+      }
+    }
+    playHand(pot)
   }
-    //console.log(pot[i][0], pot[i][1].score);
 }
 
-var player1 = new Players(),
-    player2 = new Players()
-    player1.username = "p1";
-    player2.username = "p2";
-
-var prompt = require('prompt')
-prompt.start();
 //check that they usernames are not blank
-// if (player1.username === '' || player2.username === '') {
-//   prompt.get(['player1_name', 'player2_name'], function (err, result) {
-//     player1.username = result.player1_name;
-//     player2.username = result.player2_name;
-//     console.log(player1.username+" vs "+player2.username);
-//     console.log("Let's get started");
-//   });
-// }
-
 
 
 var ourDeck = new CreateDeck();
 shuffleArray(ourDeck);
 
-
+var player1 = new Players(),
+    player2 = new Players()
+    player1.username = "p1";
+    player2.username = "p2";
 var players = [player1, player2]
-dealHand(ourDeck,players);
-//pot has winner and card
-var g = 0
-do{
-  playHand();
-  console.log(g);
-  g++
-} while ( players[0].hand.length !== 0 && players[1].hand.length !== 0 && g<100 )
+
+function getNames() {
+    prompt.start();
+    prompt.get(['player1_name', 'player2_name'], function (err, result) {
+    player1.username = result.player1_name;
+    console.log(player1.username);
+    player2.username = result.player2_name;
+    console.log(player2.username);
+    });
+}
+
+
+var ties = 0;
+var round = 1;
+
+function playGame() {
+    //getNames()
+      console.log(player1.username+" vs "+player2.username);
+      console.log("Let's get started");
+      dealHand(ourDeck,players);
+      do{
+        var myPot = []
+        console.log("*****ROUND "+round+"*****");
+        playHand(myPot);
+        handSummary()
+        round++
+      } while ( players[0].hand.length !== 0 && players[1].hand.length !== 0 && round<1001)
+
+}
+
+playGame()
